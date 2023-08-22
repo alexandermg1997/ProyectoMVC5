@@ -1,0 +1,686 @@
+﻿
+@{
+    ViewBag.Title = "Producto";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<ol class="breadcrumb mb-4 mt-4">
+    <li class="breadcrumb-item"><a href="index.html">Mantenimiento</a></li>
+    <li class="breadcrumb-item active">Producto</li>
+</ol>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-boxes me-1"></i> Lista de productos
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-12">
+                <button type="button" class="btn btn-success" onclick="abrirModal(null)">Crear nuevo</button>
+            </div>
+        </div>
+        <hr />
+
+        <table id="tabla" class="display cell-border" style="width: 100%">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Marca</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Activo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="Modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="exampleModalLabel">Marca</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <input type="hidden" id="txtId" value="0" />
+
+                <form id="contenedor" class="row">
+
+                    <div class="col-sm-3">
+                        <div class="mb-2">
+                            <img id="imgProducto" height="197" width="200" class="border rounded mx-auto d-block img-fluid" />
+                        </div>
+                        <div class="mb-2">
+                            <input type="file" class="form-control" id="fileProducto" accept="image/png, image/jpg, image/jpeg" onchange="mostrarImagen(this)" />
+                        </div>
+                    </div>
+
+                    <div class="col-sm-3">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre: </label>
+                            <input type="text" class="form-control" id="txtNombre" name="nombre" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción: </label>
+                            <textarea type="text" class="form-control" id="txtDescripcion" name="descripcion" style="height:125px;resize:none;"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-3">
+                        <div class="mb-3">
+                            <label class="form-label">Marca: </label>
+                            <select id="cboMarca" class="form-select"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Categoría: </label>
+                            <select id="cboCategoria" class="form-select"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Precio: </label>
+                            <input type="text" id="txtPrecio" class="form-control" name="precio" autocomplete="off" />
+                        </div>
+                    </div>
+
+                    <div class="col-sm-3">
+                        <div class="mb-3">
+                            <label class="form-label">Stock: </label>
+                            <input type="number" class="form-control" id="txtStock" name="stock" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Activo: </label>
+                            <select id="cboActivo" class="form-select">
+                                <option value="1">Si</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="row">
+                    <div class="col-12">
+                        <div id="mensajeError" class="alert alert-danger" role="alert">
+                            Algo anda mal:
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="Guardar()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+
+    <script>
+
+        let tablaData;
+        let filaSeleccionada;
+
+        function mostrarImagen(input) {
+            if (input.files) {
+
+                let reader = new FileReader();
+
+                reader.onload = function (e) {
+                    $("#imgProducto").attr("src", e.target.result).width(200).height(197);
+                }
+
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        tablaData = $("#tabla").DataTable({
+            responsive: true,
+            ordering: false,
+            "ajax": {
+                url: '@Url.Action("ListarProductos", "Mantenedor")',
+                type: 'GET',
+                dataType: 'json'
+            },
+            "columns": [
+                {"data": "Nombre"},
+                { "data": "Descripcion" },
+                {
+                    "data": "oMarca", "render": function (data) {
+                        return data.Descripcion;
+                    }
+                },
+                {
+                    "data": "oCategoria", "render": function (data) {
+                        return data.Descripcion;
+                    }
+                },
+                { "data": "Precio" },
+                { "data": "Stock" },
+                {
+                    "data": "Activo", "render": function (valor) {
+                        if (valor == true) {
+                            return '<span class="badge bg-success">Si</span>';
+                        } else {
+                            return '<span class="badge bg-danger">No</span>';
+                        }
+                    }
+                },
+                {
+                    "defaultContent": '<button type="button" class="btn btn-warning btn-sm btn-editar"><i class="fas fa-pen"></i></button>' + '<button type="button" class="btn btn-danger btn-sm ms-2 btn-eliminar"><i class="fas fa-trash"></i></button>',
+                    "orderable": false,
+                    "searchable": false,
+                    "width": "60px"
+                }
+            ],
+            //// Para hacerlo online
+            //"language": {
+            //    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json',
+            //}
+
+            //Para hacerlo local
+            "language": {
+                "processing": "Procesando...",
+                "lengthMenu": "Mostrar _MENU_ registros",
+                "zeroRecords": "No se encontraron resultados",
+                "emptyTable": "Ningún dato disponible en esta tabla",
+                "infoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                "infoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "search": "Buscar:",
+                "infoThousands": ",",
+                "loadingRecords": "Cargando...",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                },
+                "aria": {
+                    "sortAscending": ": Activar para ordenar la columna de manera ascendente",
+                    "sortDescending": ": Activar para ordenar la columna de manera descendente"
+                },
+                "buttons": {
+                    "copy": "Copiar",
+                    "colvis": "Visibilidad",
+                    "collection": "Colección",
+                    "colvisRestore": "Restaurar visibilidad",
+                    "copyKeys": "Presione ctrl o u2318 + C para copiar los datos de la tabla al portapapeles del sistema. <br \/> <br \/> Para cancelar, haga clic en este mensaje o presione escape.",
+                    "copySuccess": {
+                        "1": "Copiada 1 fila al portapapeles",
+                        "_": "Copiadas %ds fila al portapapeles"
+                    },
+                    "copyTitle": "Copiar al portapapeles",
+                    "csv": "CSV",
+                    "excel": "Excel",
+                    "pageLength": {
+                        "-1": "Mostrar todas las filas",
+                        "_": "Mostrar %d filas"
+                    },
+                    "pdf": "PDF",
+                    "print": "Imprimir",
+                    "renameState": "Cambiar nombre",
+                    "updateState": "Actualizar",
+                    "createState": "Crear Estado",
+                    "removeAllStates": "Remover Estados",
+                    "removeState": "Remover",
+                    "savedStates": "Estados Guardados",
+                    "stateRestore": "Estado %d"
+                },
+                "autoFill": {
+                    "cancel": "Cancelar",
+                    "fill": "Rellene todas las celdas con <i>%d<\/i>",
+                    "fillHorizontal": "Rellenar celdas horizontalmente",
+                    "fillVertical": "Rellenar celdas verticalmentemente"
+                },
+                "decimal": ",",
+                "searchBuilder": {
+                    "add": "Añadir condición",
+                    "button": {
+                        "0": "Constructor de búsqueda",
+                        "_": "Constructor de búsqueda (%d)"
+                    },
+                    "clearAll": "Borrar todo",
+                    "condition": "Condición",
+                    "conditions": {
+                        "date": {
+                            "after": "Despues",
+                            "before": "Antes",
+                            "between": "Entre",
+                            "empty": "Vacío",
+                            "equals": "Igual a",
+                            "notBetween": "No entre",
+                            "notEmpty": "No Vacio",
+                            "not": "Diferente de"
+                        },
+                        "number": {
+                            "between": "Entre",
+                            "empty": "Vacio",
+                            "equals": "Igual a",
+                            "gt": "Mayor a",
+                            "gte": "Mayor o igual a",
+                            "lt": "Menor que",
+                            "lte": "Menor o igual que",
+                            "notBetween": "No entre",
+                            "notEmpty": "No vacío",
+                            "not": "Diferente de"
+                        },
+                        "string": {
+                            "contains": "Contiene",
+                            "empty": "Vacío",
+                            "endsWith": "Termina en",
+                            "equals": "Igual a",
+                            "notEmpty": "No Vacio",
+                            "startsWith": "Empieza con",
+                            "not": "Diferente de",
+                            "notContains": "No Contiene",
+                            "notStartsWith": "No empieza con",
+                            "notEndsWith": "No termina con"
+                        },
+                        "array": {
+                            "not": "Diferente de",
+                            "equals": "Igual",
+                            "empty": "Vacío",
+                            "contains": "Contiene",
+                            "notEmpty": "No Vacío",
+                            "without": "Sin"
+                        }
+                    },
+                    "data": "Data",
+                    "deleteTitle": "Eliminar regla de filtrado",
+                    "leftTitle": "Criterios anulados",
+                    "logicAnd": "Y",
+                    "logicOr": "O",
+                    "rightTitle": "Criterios de sangría",
+                    "title": {
+                        "0": "Constructor de búsqueda",
+                        "_": "Constructor de búsqueda (%d)"
+                    },
+                    "value": "Valor"
+                },
+                "searchPanes": {
+                    "clearMessage": "Borrar todo",
+                    "collapse": {
+                        "0": "Paneles de búsqueda",
+                        "_": "Paneles de búsqueda (%d)"
+                    },
+                    "count": "{total}",
+                    "countFiltered": "{shown} ({total})",
+                    "emptyPanes": "Sin paneles de búsqueda",
+                    "loadMessage": "Cargando paneles de búsqueda",
+                    "title": "Filtros Activos - %d",
+                    "showMessage": "Mostrar Todo",
+                    "collapseMessage": "Colapsar Todo"
+                },
+                "select": {
+                    "cells": {
+                        "1": "1 celda seleccionada",
+                        "_": "%d celdas seleccionadas"
+                    },
+                    "columns": {
+                        "1": "1 columna seleccionada",
+                        "_": "%d columnas seleccionadas"
+                    },
+                    "rows": {
+                        "1": "1 fila seleccionada",
+                        "_": "%d filas seleccionadas"
+                    }
+                },
+                "thousands": ".",
+                "datetime": {
+                    "previous": "Anterior",
+                    "next": "Proximo",
+                    "hours": "Horas",
+                    "minutes": "Minutos",
+                    "seconds": "Segundos",
+                    "unknown": "-",
+                    "amPm": [
+                        "AM",
+                        "PM"
+                    ],
+                    "months": {
+                        "0": "Enero",
+                        "1": "Febrero",
+                        "10": "Noviembre",
+                        "11": "Diciembre",
+                        "2": "Marzo",
+                        "3": "Abril",
+                        "4": "Mayo",
+                        "5": "Junio",
+                        "6": "Julio",
+                        "7": "Agosto",
+                        "8": "Septiembre",
+                        "9": "Octubre"
+                    },
+                    "weekdays": [
+                        "Dom",
+                        "Lun",
+                        "Mar",
+                        "Mie",
+                        "Jue",
+                        "Vie",
+                        "Sab"
+                    ]
+                },
+                "editor": {
+                    "close": "Cerrar",
+                    "create": {
+                        "button": "Nuevo",
+                        "title": "Crear Nuevo Registro",
+                        "submit": "Crear"
+                    },
+                    "edit": {
+                        "button": "Editar",
+                        "title": "Editar Registro",
+                        "submit": "Actualizar"
+                    },
+                    "remove": {
+                        "button": "Eliminar",
+                        "title": "Eliminar Registro",
+                        "submit": "Eliminar",
+                        "confirm": {
+                            "_": "¿Está seguro que desea eliminar %d filas?",
+                            "1": "¿Está seguro que desea eliminar 1 fila?"
+                        }
+                    },
+                    "error": {
+                        "system": "Ha ocurrido un error en el sistema (<a target=\"\\\" rel=\"\\ nofollow\" href=\"\\\">Más información&lt;\\\/a&gt;).<\/a>"
+                    },
+                    "multi": {
+                        "title": "Múltiples Valores",
+                        "info": "Los elementos seleccionados contienen diferentes valores para este registro. Para editar y establecer todos los elementos de este registro con el mismo valor, hacer click o tap aquí, de lo contrario conservarán sus valores individuales.",
+                        "restore": "Deshacer Cambios",
+                        "noMulti": "Este registro puede ser editado individualmente, pero no como parte de un grupo."
+                    }
+                },
+                "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                "stateRestore": {
+                    "creationModal": {
+                        "button": "Crear",
+                        "name": "Nombre:",
+                        "order": "Clasificación",
+                        "paging": "Paginación",
+                        "search": "Busqueda",
+                        "select": "Seleccionar",
+                        "columns": {
+                            "search": "Búsqueda de Columna",
+                            "visible": "Visibilidad de Columna"
+                        },
+                        "title": "Crear Nuevo Estado",
+                        "toggleLabel": "Incluir:"
+                    },
+                    "emptyError": "El nombre no puede estar vacio",
+                    "removeConfirm": "¿Seguro que quiere eliminar este %s?",
+                    "removeError": "Error al eliminar el registro",
+                    "removeJoiner": "y",
+                    "removeSubmit": "Eliminar",
+                    "renameButton": "Cambiar Nombre",
+                    "renameLabel": "Nuevo nombre para %s",
+                    "duplicateError": "Ya existe un Estado con este nombre.",
+                    "emptyStates": "No hay Estados guardados",
+                    "removeTitle": "Remover Estado",
+                    "renameTitle": "Cambiar Nombre Estado"
+                }
+            }
+        });
+
+        jQuery.ajax({
+            url: '@Url.Action("ListarMarcas", "Mantenedor")',
+            type: 'GET',
+            data: null,
+            dataType: 'json',
+            contentType: 'application/json; charset=utf8',
+            success: function (data) {
+                $("<option>").attr({ "value": "0", "disabled": "disabled"}).text("-Seleccione una opción-").appendTo("#cboMarca");
+                $.each(data.data, function (index, item) {
+                    $("<option>").attr({ "value": item.IdMarca }).text(item.Descripcion).appendTo("#cboMarca");
+                });
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+
+        jQuery.ajax({
+            url: '@Url.Action("ListarCategorias", "Mantenedor")',
+            type: 'GET',
+            data: null,
+            dataType: 'json',
+            contentType: 'application/json; charset=utf8',
+            success: function (data) {
+                $("<option>").attr({ "value": "0", "disabled":"disabled"}).text("-Seleccione una opción-").appendTo("#cboCategoria");
+                $.each(data.data, function (index, item) {
+                    $("<option>").attr({ "value": item.IdCategoria }).text(item.Descripcion).appendTo("#cboCategoria");
+                });
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+
+        jQuery.validator.addMethod("precioDecimal", function (value, element) {
+            return this.optional(element) || /^\d{0,4}(\.\d{0,2})?$/i.test(value);
+        }, "El formato correcto del precio es ##.##");
+
+        $("#contenedor").validate({
+            rules: {
+                nombre: {
+                    required: true
+                },
+                descripcion: {
+                    required: true
+                },
+                precio: {
+                    required: true,
+                    precioDecimal: true
+                },
+                stock: {
+                    required: true,
+                    number: true
+                }
+            },
+            messages: {
+                nombre: "- El campo nombre es obligatorio",
+                descripcion: "- El campo descripción es obligatorio",
+                precio: { required: "- El campo precio es obligatorio", precioDecimal: "- El formato correcto del precio es ##.##"},
+                stock: { required: "- El campo precio es obligatorio", number: "- Debe ingresar solo números" }
+            },
+            errorElement: "div",
+            errorLabelContainer: ".alert-danger"
+        });
+
+        function abrirModal(json) {
+            if (json != null) {
+                $("#txtId").val(json.IdProducto);
+                $("#txtNombre").val(json.Nombre);
+                $("#txtDescripcion").val(json.Descripcion);
+                $("#cboMarca").val(json.oMarca.IdMarca);
+                $("#cboCategoria").val(json.oCategoria.IdCategoria);
+                $("#txtPrecio").val(json.Precio);
+                $("#txtStock").val(json.Stock);
+                $("#cboActivo").val(json.Activo == true ? 1 : 0);
+                jQuery.ajax({
+                    url: '@Url.Action("ImagenProducto", "Mantenedor")',
+                    type: 'POST',
+                    data: JSON.stringify({ id: json.IdProducto }),
+                    dataType: 'json',
+                    contentType: 'application/json; charset=utf8',
+                    success: function (data) {
+
+                        $("#imgProducto").LoadingOverlay("hide");
+
+                        if (data.conversion) {
+                            $("#imgProducto").attr({ "src": "data:image/" + data.extension + ";base64," + data.textoBase64 }).width(200).height(197);
+                        } else {
+                            $("#imgProducto").removeAttr("src");
+                        }
+                    },
+                    error: function (error) {
+                        $("#imgProducto").LoadingOverlay("hide");
+                        $("#mensajeError").show();
+                        $("#mensajeError").text("Error al mostrar la imagen");
+                    },
+                    beforeSend: function() {
+                        $("#imgProducto").LoadingOverlay("show");
+                    }
+                });
+                $("#mensajeError").hide();
+            } else {
+                $("#txtId").val(0);
+                $("#imgProducto").removeAttr("src");
+                $("#fileProducto").val("");
+                $("#txtNombre").val("");
+                $("#txtDescripcion").val("");
+                $("#cboMarca").val($("#cboMarca option:first").val());
+                $("#cboCategoria").val($("#cboCategoria option:first").val());
+                $("#txtPrecio").val("");
+                $("#txtStock").val("");
+                $("#cboActivo").val(1);
+                $("#mensajeError").hide();
+            }
+
+            $("#Modal").modal("show");
+        }
+
+        $("#tabla tbody").on("click", '.btn-editar', function () {
+
+            filaSeleccionada = $(this).closest("tr");
+
+            let data = tablaData.row(filaSeleccionada).data();
+
+            console.log(data);
+
+            abrirModal(data);
+        });
+
+        $("#tabla tbody").on("click", '.btn-eliminar', function () {
+
+            let productoSeleccionado = $(this).closest("tr");
+
+            let data = tablaData.row(productoSeleccionado).data();
+
+            swal({
+                title: "¿Estás seguro?",
+                text: "¿Desea eliminar este producto?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonClass: "btn-danger",
+                confirmButtonText: "Aceptar",
+                cancelButtonText: "Cancelar",
+                closeOnConfirm: false
+            },
+            function () {
+                jQuery.ajax({
+                    url: '@Url.Action("EliminarProducto", "Mantenedor")',
+                    type: 'POST',
+                    data: JSON.stringify({ id: data.IdProducto }),
+                    dataType: 'json',
+                    contentType: 'application/json; charset=utf8',
+                    success: function (data) {
+                        if (data.resultado) {
+                            tablaData.row(productoSeleccionado).remove().draw();
+                            swal("Eliminado", "El producto se ha eliminado correctamente.", "success");
+                        } else {
+                            swal("No se pudo eliminar", data.mensaje, "error");
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            });
+
+        });
+
+        function Guardar() {
+
+            if (!$("#contenedor").valid()) {
+                return;
+            }
+
+            let imagenSeleccionada = $("#fileProducto")[0].files[0];
+
+            let Producto = {
+                IdProducto: $("#txtId").val(),
+                Nombre: $("#txtNombre").val(),
+                Descripcion: $("#txtDescripcion").val(),
+                oMarca: {
+                    IdMarca: $("#cboMarca option:selected").val(),
+                    Descripcion: $("#cboMarca option:selected").text()
+                },
+                oCategoria: {
+                    IdCategoria: $("#cboCategoria option:selected").val(),
+                    Descripcion: $("#cboCategoria option:selected").text()
+                },
+                PrecioTexto: $("#txtPrecio").val(),
+                Precio: $("#txtPrecio").val(),
+                Stock: $("#txtStock").val(),
+                Activo: $("#cboActivo").val() == 1 ? true : false
+            }
+
+            let request = new FormData();
+            request.append("producto", JSON.stringify(Producto));
+            request.append("archivoImagen", imagenSeleccionada);
+
+            jQuery.ajax({
+                url: '@Url.Action("GuardarProducto", "Mantenedor")',
+                type: 'POST',
+                data: request,
+                processData: false,
+                contentType: false,
+                success: function (data) {
+                    $(".modal-body").LoadingOverlay("hide");
+                    // Producto nuevo
+                    if (Producto.IdProducto == 0) {
+                        if (data.idGenerado != 0) {
+                            Producto.IdProducto = data.idGenerado;
+                            tablaData.row.add(Producto).draw(false);
+                            if (data.mensaje != "") {
+                                $("#mensajeError").text(data.mensaje);
+                                $("#mensajeError").show();
+                            } else {
+                                $("#Modal").modal("hide");
+                            }
+                        } else {
+                            $("#mensajeError").text(data.mensaje);
+                            $("#mensajeError").show();
+                        }
+                    } else { // Producto a editar
+                        if (data.operacionExitosa) {
+                            tablaData.row(filaSeleccionada).data(Producto).draw(false);
+                            filaSeleccionada = null;
+                            $("#Modal").modal("hide");
+                        } else {
+                            $("#mensajeError").text(data.mensaje);
+                            $("#mensajeError").show();
+                        }
+                    }
+                },
+                error: function (error) {
+                    $(".modal-body").LoadingOverlay("hide");
+                    $("#mensajeError").text("Error Ajax");
+                    $("#mensajeError").show();
+                 },
+                 beforeSend: function () {
+                     $(".modal-body").LoadingOverlay("show", {
+                         imageResizeFactor: 2,
+                         text: "cargando...",
+                         size: 14
+                     });
+                 }
+            });
+        }
+
+
+    </script>
+
+
+}
+
+
+
