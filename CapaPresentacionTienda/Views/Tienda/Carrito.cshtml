@@ -1,0 +1,255 @@
+﻿
+@{
+    ViewBag.Title = "Carrito";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Detalle del producto -->
+                        <div class="col-sm-9">
+                            <div class="me-2">
+                                <div class="d-flex justify-content-between">
+                                    <h5 class="ms-2 mt-2">Detalle del carrito</h5>
+                                    <a class="btn btn-outline-dark" href="@Url.Action("Index","Tienda")">
+                                        <i class="fas fa-cart-plus"></i> Seguir comprando
+                                    </a>
+                                </div>
+
+                                <hr class="mt-2 mb-2" />
+
+                                <!-- Lo que contiene este div se implementó en jQuery -->
+                                <div id="productos-carrito">
+                                   
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <label class="align-self-center"><b>Total: S/. <span id="total">00.00</span></b></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detalle del envio -->
+                        <div class="col-sm-3">
+                            <div class="card">
+                                <div class="card-body bg-light">
+                                    <h5 class="card-title">Detalle del envio</h5>
+                                    <form action="/" method="post">
+                                        <div class="mb-2">
+                                            <label for="cboDepartamento" class="form-label">Departamento: </label>
+                                            <select class="form-select form-select-sm" id="cboDepartamento"></select>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label for="cboProvincia" class="form-label">Provincia: </label>
+                                            <select class="form-select form-select-sm" id="cboProvincia"></select>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label for="cboDistrito" class="form-label">Distrito: </label>
+                                            <select class="form-select form-select-sm" id="cboDistrito"></select>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label for="txtNombreContacto" class="form-label">Nombre de contacto: </label>
+                                            <input type="text" class="form-control form-control-sm" id="txtNombreContacto" autocomplete="off">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label for="txtDireccion" class="form-label">Dirección: </label>
+                                            <input type="text" class="form-control form-control-sm" id="txtDireccion" autocomplete="off">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label for="txtTelefono" class="form-label">Teléfono: </label>
+                                            <input type="text" class="form-control form-control-sm" id="txtTelefono" autocomplete="off">
+                                        </div>
+                                        <div class="d-grid">
+                                            <button class="btn btn-success" type="button" onclick="RealizarPago()">
+                                                <i class="fab fa-paypal"></i> Terminar y procesar pago
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+
+    <script>
+
+        $(document).ready(function () {
+
+            jQuery.ajax({
+                url: '@Url.Action("ListarProductosCarrito", "Tienda")',
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json; charset=utf8',
+                success: function (response) {
+
+                    $("#productos-carrito").html("");
+                    $("#productos-carrito").LoadingOverlay("hide");
+
+                    $.each(response.data, function (i, item) {
+                        $("<div>").addClass("card mb-2 card-producto").append(
+                            $("<div>").addClass("card-body").append(
+                                $("<div>").addClass("row").append(
+                                    // Primera columna
+                                    $("<div>").addClass("col-sm-2 align-self-center d-flex justify-content-center").append(
+                                        $("<img>").addClass("rounded").attr({ "src": "data:image/" + item.oProducto.Extension + ";base64," + item.oProducto.Base64 }).css({ "width": "100px", "height":"100px"})
+                                    ),
+                                    // Segunda columna
+                                    $("<div>").addClass("col-sm-4 align-self-center").append(
+                                        $("<span>").addClass("font-wight-bold d-block").text(item.oProducto.oMarca.Descripcion),
+                                        $("<span>").text(item.oProducto.Nombre)
+                                    ),
+                                    // Tercera columna
+                                    $("<div>").addClass("col-sm-2 align-self-center").append(
+                                        $("<span>").text(item.oProducto.Precio.toFixed(2) + " USD")
+                                    ),
+                                    // Cuarta columna
+                                    $("<div>").addClass("col-sm-2 align-self-center").append(
+                                        $("<div>").addClass("d-flex").append(
+                                            $("<button>").addClass("btn btn-outline-secondary btn-restar rounded-0").append(
+                                                $("<i>").addClass("fas fa-minus")
+                                            ),
+                                            $("<input>").addClass("form-control input-cantidad p-1 text-center rounded-0").attr({ "disabled": "disabled" })
+                                                .css({ "width": "40px" })
+                                                .data("oProducto", item.oProducto)
+                                                .val(item.Cantidad),
+                                            $("<button>").addClass("btn btn-outline-secondary btn-sumar rounded-0").append(
+                                                $("<i>").addClass("fas fa-plus")
+                                            )
+                                        )
+                                    ),
+                                    // Quinta columna
+                                    $("<div>").addClass("col-sm-2 align-self-center").append(
+                                        $("<button>").addClass("btn btn-outline-danger btn-eliminar").append(
+                                            $("<i>").addClass("far fa-trash-alt"),
+                                            " Eliminar"
+                                        )
+                                    )
+                                )
+                            )
+                        ).appendTo("#productos-carrito");
+                    });
+                    sumarTotal();
+                },
+                error: function(error) {
+                    $("#productos-carrito").LoadingOverlay("hide");
+                },
+                beforeSend: function () {
+                    $("#productos-carrito").LoadingOverlay("show");
+                }
+            });
+
+            ListarDepartamento();
+        });
+
+
+        function ListarDepartamento() {
+
+            $("<option>").attr({ "value": "00", "disabled":"disabled", "selected":"true" }).text("Seleccione una opción").appendTo("#cboDepartamento");
+
+            jQuery.ajax({
+                url: '@Url.Action("ObtenerDepartamento", "Tienda")',
+                type: 'POST',
+                dataType: 'json',
+                contentType: 'application/json; charset=utf8',
+                success: function (data) {
+
+                    if (data.lista != null) {
+                        $.each(data.lista, function (i, item) {
+                            $("<option>").attr({ "value": item.IdDepartamento }).text(item.Descripcion).appendTo("#cboDepartamento");
+                        });
+
+                        ListarProvincia();
+                    }
+                }
+            });
+        }
+
+        $("#cboDepartamento").on("change", function () {
+            ListarProvincia();
+        })
+
+        function ListarProvincia() {
+
+            $("#cboProvincia").html("");
+
+            $("<option>").attr({ "value": "00", "disabled":"disabled", "selected":"true" }).text("Seleccione una opción").appendTo("#cboProvincia");
+
+            jQuery.ajax({
+                url: '@Url.Action("ObtenerProvincia", "Tienda")',
+                type: 'POST',
+                data: JSON.stringify({ idDepartamento: $("#cboDepartamento option:selected").val()}),
+                dataType: 'json',
+                contentType: 'application/json; charset=utf8',
+                success: function (data) {
+
+                    if (data.lista != null) {
+                        $.each(data.lista, function (i, item) {
+                            $("<option>").attr({ "value": item.IdProvincia }).text(item.Descripcion).appendTo("#cboProvincia");
+                        });
+
+                        ListarDistrito();
+                    }
+                }
+            });
+        }
+
+        $("#cboProvincia").on("change", function () {
+            ListarDistrito();
+        })
+
+        function ListarDistrito() {
+
+            $("#cboDistrito").html("");
+
+            $("<option>").attr({ "value": "00", "disabled": "disabled", "selected": "true" }).text("Seleccione una opción").appendTo("#cboDistrito");
+
+            jQuery.ajax({
+                url: '@Url.Action("ObtenerDistrito", "Tienda")',
+                type: 'POST',
+                data: JSON.stringify({
+                    idDepartamento: $("#cboDepartamento option:selected").val(),
+                    idProvincia: $("#cboProvincia option:selected").val()
+                }),
+                dataType: 'json',
+                contentType: 'application/json; charset=utf8',
+                success: function (data) {
+
+                    if (data.lista != null) {
+                        $.each(data.lista, function (i, item) {
+                            $("<option>").attr({ "value": item.IdDistrito }).text(item.Descripcion).appendTo("#cboDistrito");
+                        });
+                    }
+                }
+            });
+        }
+
+        function sumarTotal() {
+
+            let sumaTotal = parseFloat(0);
+
+            $("input.input-cantidad").each(function (i) {
+                let precio = $(this).data("oProducto").Precio;
+                let cantidad = parseFloat($(this).val());
+
+                let subTotal = precio * cantidad;
+
+                sumaTotal += subTotal;
+            });
+
+            $("#total").text(sumaTotal.toFixed(2));
+            $("#total").data("sumaTotal", sumaTotal);
+        }
+
+    </script>
+
+}
