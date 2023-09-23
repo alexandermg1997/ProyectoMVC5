@@ -404,7 +404,12 @@
                     $.LoadingOverlay("hide");
 
                     if (data.Status) {
-                        window.location.href = data.Link;
+
+                        let jsonResult = data.Response;
+                        let links = jsonResult.links;
+                        let resultado = links.find(item => item.rel === "approve");
+                        window.location.href = resultado.href;
+
                     } else {
                         swal("", "Vuelva a intentarlo más tarde", "warning");
                     }
