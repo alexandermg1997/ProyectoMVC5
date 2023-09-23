@@ -24,7 +24,7 @@
 
                                 <!-- Lo que contiene este div se implementó en jQuery -->
                                 <div id="productos-carrito">
-                                   
+
                                 </div>
 
                                 <div class="d-flex justify-content-end">
@@ -133,6 +133,7 @@
                                             $("<i>").addClass("far fa-trash-alt"),
                                             " Eliminar"
                                         )
+                                        .data("idproducto", item.oProducto.IdProducto)
                                     )
                                 )
                             )
@@ -249,6 +250,181 @@
             $("#total").text(sumaTotal.toFixed(2));
             $("#total").data("sumaTotal", sumaTotal);
         }
+
+        $(document).on("click", ".btn-sumar", function () {
+            let divContenedor = $(this).parent("div.d-flex");
+            let inputCantidad = $(divContenedor).find("input.input-cantidad");
+            let btn = $(this);
+            let idProducto = $(inputCantidad).data("oProducto").IdProducto;
+
+            jQuery.ajax({
+                url: '@Url.Action("OperacionCarrito", "Tienda")',
+                type: 'POST',
+                data: JSON.stringify({ idProducto: idProducto, sumar: true }),
+                dataType: 'json',
+                contentType: 'application/json; charset=utf8',
+                success: function (data) {
+
+                    $(btn).LoadingOverlay("hide");
+
+                    if (data.respuesta) {
+                        let cantidad = parseInt($(inputCantidad).val()) + 1;
+                        $(inputCantidad).val(cantidad);
+                        sumarTotal();
+                    } else {
+                        swal("", data.mensaje, "warning");
+                    }
+
+                },
+                error: function() {
+                    $(btn).LoadingOverlay("hide");
+                },
+                beforeSend: function () {
+                    $(btn).LoadingOverlay("show");
+                }
+            });
+        });
+
+        $(document).on("click", ".btn-restar", function () {
+            let divContenedor = $(this).parent("div.d-flex");
+            let inputCantidad = $(divContenedor).find("input.input-cantidad");
+            let btn = $(this);
+            let idProducto = $(inputCantidad).data("oProducto").IdProducto;
+
+            let cantidad = parseInt($(inputCantidad).val()) - 1;
+            if (cantidad >= 1) {
+
+                jQuery.ajax({
+                    url: '@Url.Action("OperacionCarrito", "Tienda")',
+                    type: 'POST',
+                    data: JSON.stringify({ idProducto: idProducto, sumar: false }),
+                    dataType: 'json',
+                    contentType: 'application/json; charset=utf8',
+                    success: function (data) {
+
+                        $(btn).LoadingOverlay("hide");
+
+                        if (data.respuesta) {
+                            $(inputCantidad).val(cantidad);
+                            sumarTotal();
+                        } else {
+                            swal("", data.mensaje, "warning");
+                        }
+
+                    },
+                    error: function() {
+                        $(btn).LoadingOverlay("hide");
+                    },
+                    beforeSend: function () {
+                        $(btn).LoadingOverlay("show");
+                    }
+                });
+            }
+        });
+
+        $(document).on("click", ".btn-eliminar", function () {
+
+            let idProducto = $(this).data("idproducto");
+
+            let cardProducto = $(this).parents("div.card-producto");
+
+            jQuery.ajax({
+                url: '@Url.Action("EliminarCarrito", "Tienda")',
+                type: 'POST',
+                data: JSON.stringify({ idProducto: idProducto }),
+                dataType: 'json',
+                contentType: 'application/json; charset=utf8',
+                success: function (data) {
+
+                    $("#productos-carrito").LoadingOverlay("hide");
+
+                    if (data.respuesta) {
+                        $(cardProducto).remove();
+                        MostrarCantidadCarrito();
+                        sumarTotal();
+                    } else {
+                        swal("", data.mensaje, "warning");
+                    }
+
+                },
+                error: function() {
+                    $("#productos-carrito").LoadingOverlay("hide");
+                },
+                beforeSend: function () {
+                    $("#productos-carrito").LoadingOverlay("show");
+                }
+            });
+        });
+
+        function RealizarPago() {
+
+            if (parseInt($("#cantidadCarrito").text()) == 0) {
+                swal("", "No existe productos en el carrito", "warning");
+                return;
+            }
+
+            if ($("#cboDistrito").val() == null ||
+                $("#txtNombreContacto").val() == "" ||
+                $("#txtDireccion").val() == "" ||
+                $("#txtTelefono").val() == "") {
+
+                swal("", "Debe completar los datos de detalles del envio", "warning");
+                return;
+            }
+
+            let venta = {
+                TotalProducto: $("input.input-cantidad").length,
+                MontoTotal: 0,
+                Contacto: $("#txtNombreContacto").val(),
+                IdDistrito: $("#cboDistrito").val(),
+                Telefono: $("#txtTelefono").val(),
+                Direccion: $("#txtDireccion").val()
+            }
+
+            let listaCarrito = [];
+
+            $("input.input-cantidad").each(function (i) {
+                let producto = $(this).data("oProducto");
+                let cantidad = parseFloat($(this).val());
+
+                listaCarrito.push({
+                    oProducto: producto,
+                    Cantidad: cantidad
+                })
+            });
+
+            jQuery.ajax({
+                url: '@Url.Action("ProcesarPago", "Tienda")',
+                type: 'POST',
+                data: JSON.stringify({ oListaCarrito: listaCarrito, oVenta: venta}),
+                dataType: 'json',
+                contentType: 'application/json; charset=utf8',
+                success: function (data) {
+
+                    $.LoadingOverlay("hide");
+
+                    if (data.Status) {
+
+                        let jsonResult = data.Response;
+                        let links = jsonResult.links;
+                        let resultado = links.find(item => item.rel === "approve");
+                        window.location.href = resultado.href;
+
+                    } else {
+                        swal("", "Vuelva a intentarlo más tarde", "warning");
+                    }
+
+                },
+                error: function() {
+                    $.LoadingOverlay("hide");
+                },
+                beforeSend: function () {
+                    $.LoadingOverlay("show");
+                }
+            });
+
+        }
+
 
     </script>
 
